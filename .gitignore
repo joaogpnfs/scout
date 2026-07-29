@@ -1,0 +1,10 @@
+CLAUDE.md
+node_modules/
+dist/
+.next/
+generated/
+*.tsbuildinfo
+.env
+.env.local
+.DS_Store
+Thumbs.db

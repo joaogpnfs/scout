@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Collection {
+  id                String    @id @default(cuid())
+  name              String
+  icon              String
+  instruction       String    @db.Text
+  fieldSchema       Json
+  destinationType   String
+  destinationConfig Json
+  captures          Capture[]
+  createdAt         DateTime  @default(now())
+}
+
+model Capture {
+  id           String       @id @default(cuid())
+  collectionId String
+  collection   Collection   @relation(fields: [collectionId], references: [id])
+  imageUrl     String
+  ocrText      String       @db.Text
+  extracted    Json
+  confidence   Float
+  status       String
+  corrections  Correction[]
+  createdAt    DateTime     @default(now())
+
+  @@index([collectionId])
+}
+
+model Correction {
+  id        String   @id @default(cuid())
+  captureId String
+  capture   Capture  @relation(fields: [captureId], references: [id], onDelete: Cascade)
+  fieldKey  String
+  aiValue   String   @db.Text
+  userValue String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([captureId])
+}
