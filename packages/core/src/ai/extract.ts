@@ -53,6 +53,7 @@ function buildExtractInputSchema(fieldSchema: FieldSchema): Anthropic.Tool.Input
         type: "object",
         properties,
         required,
+        additionalProperties: false,
         description: "The extracted field values, one per Collection field.",
       },
       uncertainFieldKeys: {
@@ -62,6 +63,7 @@ function buildExtractInputSchema(fieldSchema: FieldSchema): Anthropic.Tool.Input
       },
     },
     required: ["fields", "uncertainFieldKeys"],
+    additionalProperties: false,
   };
 }
 

@@ -49,9 +49,7 @@ export async function classify(
             },
             confidence: {
               type: "number",
-              minimum: 0,
-              maximum: 1,
-              description: "How confident you are in this classification, from 0 to 1.",
+              description: "How confident you are in this classification, as a number from 0 to 1.",
             },
             reasoning: {
               type: "string",
@@ -59,6 +57,7 @@ export async function classify(
             },
           },
           required: ["collectionId", "confidence", "reasoning"],
+          additionalProperties: false,
         },
         strict: true,
       },

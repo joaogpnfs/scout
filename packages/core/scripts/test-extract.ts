@@ -5,11 +5,9 @@ import {
   classify,
   extract,
   prepareImage,
-  getAnthropicClient,
-  logUsage,
+  transcribe,
   type ClassifyCollectionInput,
   type FieldSchema,
-  type EncodedImage,
 } from "../src/index";
 
 // Reuses apps/console's .env for ANTHROPIC_API_KEY so the key only lives in one place.
@@ -67,35 +65,6 @@ const COLLECTIONS: (ClassifyCollectionInput & { fieldSchema: FieldSchema })[] = 
     ],
   },
 ];
-
-const OCR_MODEL = "claude-haiku-4-5";
-
-// Stand-in for Phase 8's native OCR (Vision framework / Windows.Media.Ocr).
-// classify() itself stays text-only per spec; this just gives it text to work with.
-async function transcribe(image: EncodedImage): Promise<string> {
-  const client = getAnthropicClient();
-  const response = await client.messages.create({
-    model: OCR_MODEL,
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: image.mediaType, data: image.base64 } },
-          { type: "text", text: "Transcribe all visible text in this screenshot, verbatim. No commentary." },
-        ],
-      },
-    ],
-  });
-  logUsage({
-    call: "transcribe (CLI stand-in for OCR)",
-    model: OCR_MODEL,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
-  });
-  const textBlock = response.content.find((block) => block.type === "text");
-  return textBlock && textBlock.type === "text" ? textBlock.text : "";
-}
 
 async function main(): Promise<void> {
   const imagePath = process.argv[2];
