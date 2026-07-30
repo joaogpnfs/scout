@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="16" height="16" role="img" aria-label="Scout">
+  <!-- variante corrigida opticamente para 16px: laminas mais largas, vazio menor -->
+  <path fill="#0B0B0C" d="M50.00 17.09 L64.63 42.69 L50.00 52.44 L35.37 42.69 Z"/>
+  <path fill="#0B0B0C" d="M88.00 82.91 L58.52 82.78 L57.39 65.24 L73.15 57.44 Z"/>
+  <path fill="#0B0B0C" d="M12.00 82.91 L26.85 57.44 L42.61 65.24 L41.48 82.78 Z"/>
+</svg>

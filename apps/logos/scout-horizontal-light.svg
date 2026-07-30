@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 263 100" width="263" height="100" role="img" aria-label="Scout">
+  <g transform="translate(0 5) scale(0.9)">
+    <path fill="#0B0B0C" d="M50.00 20.56 L58.72 44.55 L50.00 53.27 L41.28 44.55 Z"/>
+    <path fill="#0B0B0C" d="M84.00 79.44 L58.86 75.00 L55.67 63.09 L67.58 59.89 Z"/>
+    <path fill="#0B0B0C" d="M16.00 79.44 L32.42 59.89 L44.33 63.09 L41.14 75.00 Z"/>
+  </g>
+  <text x="104" y="69.6" font-family="Inter, 'Geist Sans', 'SF Pro Display', -apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="54" font-weight="600" letter-spacing="-1.1" fill="#0B0B0C">Scout</text>
+</svg>
