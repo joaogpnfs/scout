@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import {
@@ -9,8 +9,10 @@ import {
   extract,
   prepareImage,
   transcribe,
+  COLLECTION_CORRECTION_FIELD_KEY,
   ExtractedFieldsSchema,
   FieldSchemaSchema,
+  type EncodedImage,
   type FieldSchema,
 } from "@scout/core";
 import { db } from "@/lib/db";
@@ -25,37 +27,13 @@ export interface ProcessCaptureResult {
   fieldSchema: FieldSchema;
   fields: Record<string, unknown>;
   uncertainFieldKeys: string[];
+  collections: { id: string; name: string }[];
 }
 
-export async function processCapture(formData: FormData): Promise<ProcessCaptureResult> {
-  const file = formData.get("image");
-  if (!(file instanceof File)) {
-    throw new Error("No image provided");
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const image = await prepareImage(buffer);
-
-  const collections = await db.collection.findMany({
-    select: { id: true, name: true, instruction: true, fieldSchema: true },
-  });
-  if (collections.length === 0) {
-    throw new Error("No Collections exist yet — create one first.");
-  }
-
-  const ocrText = await transcribe(image);
-  const classification = await classify(
-    ocrText,
-    collections.map((collection) => ({
-      id: collection.id,
-      name: collection.name,
-      instruction: collection.instruction,
-    })),
-  );
-
-  const collection = collections.find((candidate) => candidate.id === classification.collectionId);
+async function runExtraction(image: EncodedImage, collectionId: string) {
+  const collection = await db.collection.findUnique({ where: { id: collectionId } });
   if (!collection) {
-    throw new Error(`classify returned unknown collectionId: ${classification.collectionId}`);
+    throw new Error(`Unknown collectionId: ${collectionId}`);
   }
 
   const fieldSchema = FieldSchemaSchema.parse(collection.fieldSchema);
@@ -72,6 +50,37 @@ export async function processCapture(formData: FormData): Promise<ProcessCapture
     recentCorrections,
   );
 
+  return { collection, fieldSchema, extraction };
+}
+
+export async function processCapture(formData: FormData): Promise<ProcessCaptureResult> {
+  const file = formData.get("image");
+  if (!(file instanceof File)) {
+    throw new Error("No image provided");
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const image = await prepareImage(buffer);
+
+  const allCollections = await db.collection.findMany({
+    select: { id: true, name: true, instruction: true, fieldSchema: true },
+  });
+  if (allCollections.length === 0) {
+    throw new Error("No Collections exist yet — create one first.");
+  }
+
+  const ocrText = await transcribe(image);
+  const classification = await classify(
+    ocrText,
+    allCollections.map((collection) => ({
+      id: collection.id,
+      name: collection.name,
+      instruction: collection.instruction,
+    })),
+  );
+
+  const { collection, fieldSchema, extraction } = await runExtraction(image, classification.collectionId);
+
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
   await mkdir(uploadsDir, { recursive: true });
   const filename = `${randomUUID()}.jpg`;
@@ -87,11 +96,41 @@ export async function processCapture(formData: FormData): Promise<ProcessCapture
     fieldSchema,
     fields: extraction.fields,
     uncertainFieldKeys: extraction.uncertainFieldKeys,
+    collections: allCollections.map((candidate) => ({ id: candidate.id, name: candidate.name })),
+  };
+}
+
+export interface ReextractInput {
+  imageUrl: string;
+  collectionId: string;
+}
+
+export async function reextract(input: ReextractInput): Promise<ProcessCaptureResult> {
+  const fullPath = path.join(process.cwd(), "public", input.imageUrl);
+  const buffer = await readFile(fullPath);
+  const image: EncodedImage = { mediaType: "image/jpeg", base64: buffer.toString("base64") };
+
+  const { collection, fieldSchema, extraction } = await runExtraction(image, input.collectionId);
+
+  const allCollections = await db.collection.findMany({ select: { id: true, name: true } });
+
+  return {
+    imageUrl: input.imageUrl,
+    ocrText: "",
+    collectionId: collection.id,
+    collectionName: collection.name,
+    confidence: 1,
+    reasoning: "Manually reclassified.",
+    fieldSchema,
+    fields: extraction.fields,
+    uncertainFieldKeys: extraction.uncertainFieldKeys,
+    collections: allCollections,
   };
 }
 
 export interface SaveCaptureInput {
   collectionId: string;
+  originalCollectionId: string;
   imageUrl: string;
   ocrText: string;
   confidence: number;
@@ -127,6 +166,15 @@ export async function saveCapture(input: SaveCaptureInput): Promise<{ captureId:
       aiValue: stringifyFieldValue(input.originalFields[key]),
       userValue: stringifyFieldValue(value),
     }));
+
+  if (input.collectionId !== input.originalCollectionId) {
+    correctionRows.push({
+      captureId: capture.id,
+      fieldKey: COLLECTION_CORRECTION_FIELD_KEY,
+      aiValue: input.originalCollectionId,
+      userValue: input.collectionId,
+    });
+  }
 
   if (correctionRows.length > 0) {
     await db.correction.createMany({ data: correctionRows });

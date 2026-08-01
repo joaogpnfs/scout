@@ -9,16 +9,28 @@ interface ReviewPanelProps {
   result: ProcessCaptureResult;
   fields: Record<string, unknown>;
   onChange: (fields: Record<string, unknown>) => void;
+  onReclassify: (collectionId: string) => void;
   onSave: () => void;
   onDiscard: () => void;
   saving: boolean;
+  reclassifying: boolean;
 }
 
-export function ReviewPanel({ result, fields, onChange, onSave, onDiscard, saving }: ReviewPanelProps) {
+export function ReviewPanel({
+  result,
+  fields,
+  onChange,
+  onReclassify,
+  onSave,
+  onDiscard,
+  saving,
+  reclassifying,
+}: ReviewPanelProps) {
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
-      const isEditable = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
+      const isEditable =
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.tagName === "SELECT";
 
       if (event.key === "Enter" && (event.metaKey || event.ctrlKey || !isEditable)) {
         event.preventDefault();
@@ -46,10 +58,21 @@ export function ReviewPanel({ result, fields, onChange, onSave, onDiscard, savin
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="rounded-full border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200">
-          {result.collectionName}
+        <select
+          value={result.collectionId}
+          disabled={reclassifying}
+          onChange={(event) => onReclassify(event.target.value)}
+          className="rounded-full border border-zinc-700 bg-transparent px-2.5 py-1 text-xs text-zinc-200 outline-none focus:border-zinc-500 disabled:opacity-50"
+        >
+          {result.collections.map((collection) => (
+            <option key={collection.id} value={collection.id} className="bg-zinc-900">
+              {collection.name}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-zinc-500">
+          {reclassifying ? "Re-extracting…" : `${Math.round(result.confidence * 100)}% confidence`}
         </span>
-        <span className="text-xs text-zinc-500">{Math.round(result.confidence * 100)}% confidence</span>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -70,7 +93,7 @@ export function ReviewPanel({ result, fields, onChange, onSave, onDiscard, savin
         </button>
         <button
           onClick={onSave}
-          disabled={saving}
+          disabled={saving || reclassifying}
           className="rounded-md bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-zinc-950 transition hover:opacity-90 disabled:opacity-50"
         >
           {saving ? "Saving…" : "Save"} <kbd className="ml-1 opacity-70">⏎</kbd>

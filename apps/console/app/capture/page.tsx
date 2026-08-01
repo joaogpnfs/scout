@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { processCapture, saveCapture, type ProcessCaptureResult } from "./actions";
+import { processCapture, reextract, saveCapture, type ProcessCaptureResult } from "./actions";
 import { ReviewPanel } from "./review-panel";
 
 type Status = "idle" | "processing" | "review" | "saving" | "saved" | "error";
@@ -9,7 +9,9 @@ type Status = "idle" | "processing" | "review" | "saving" | "saved" | "error";
 export default function CapturePage() {
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ProcessCaptureResult | null>(null);
+  const [originalCollectionId, setOriginalCollectionId] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, unknown>>({});
+  const [reclassifying, setReclassifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -21,6 +23,7 @@ export default function CapturePage() {
       formData.set("image", file);
       const processed = await processCapture(formData);
       setResult(processed);
+      setOriginalCollectionId(processed.collectionId);
       setFields(processed.fields);
       setStatus("review");
     } catch (err) {
@@ -47,12 +50,31 @@ export default function CapturePage() {
     [handleFile],
   );
 
+  const handleReclassify = useCallback(
+    async (collectionId: string) => {
+      if (!result || collectionId === result.collectionId) return;
+      setReclassifying(true);
+      setError(null);
+      try {
+        const reprocessed = await reextract({ imageUrl: result.imageUrl, collectionId });
+        setResult({ ...reprocessed, ocrText: result.ocrText });
+        setFields(reprocessed.fields);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not reclassify");
+      } finally {
+        setReclassifying(false);
+      }
+    },
+    [result],
+  );
+
   const handleSave = useCallback(async () => {
-    if (!result) return;
+    if (!result || !originalCollectionId) return;
     setStatus("saving");
     try {
       await saveCapture({
         collectionId: result.collectionId,
+        originalCollectionId,
         imageUrl: result.imageUrl,
         ocrText: result.ocrText,
         confidence: result.confidence,
@@ -64,11 +86,12 @@ export default function CapturePage() {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setStatus("error");
     }
-  }, [result, fields]);
+  }, [result, originalCollectionId, fields]);
 
   const reset = useCallback(() => {
     setStatus("idle");
     setResult(null);
+    setOriginalCollectionId(null);
     setFields({});
     setError(null);
   }, []);
@@ -118,9 +141,11 @@ export default function CapturePage() {
           result={result}
           fields={fields}
           onChange={setFields}
+          onReclassify={handleReclassify}
           onSave={handleSave}
           onDiscard={reset}
           saving={status === "saving"}
+          reclassifying={reclassifying}
         />
       ) : null}
 

@@ -68,6 +68,15 @@ export const CaptureSchema = z.object({
 });
 export type Capture = z.infer<typeof CaptureSchema>;
 
+/**
+ * Reserved fieldKey for Correction rows that record a reclassification (the
+ * user picked a different Collection than the one classify() proposed),
+ * rather than an edit to one of the Collection's own fields. Console-only —
+ * this is the console's own reuse of the Correction table for the accuracy
+ * metric, not something the desktop app's queue model needs to know about.
+ */
+export const COLLECTION_CORRECTION_FIELD_KEY = "__collection__";
+
 export const CorrectionSchema = z.object({
   id: z.string(),
   captureId: z.string(),

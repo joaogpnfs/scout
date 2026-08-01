@@ -21,6 +21,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link href="/collections" className="hover:text-zinc-100">
             Collections
           </Link>
+          <Link href="/library" className="hover:text-zinc-100">
+            Library
+          </Link>
+          <Link href="/metrics" className="hover:text-zinc-100">
+            Metrics
+          </Link>
         </nav>
         {children}
       </body>
