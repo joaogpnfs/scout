@@ -1,5 +1,12 @@
 import { db } from "@/lib/db";
-import { DestinationTypeSchema, FieldSchemaSchema, type DestinationType, type FieldSchema } from "@scout/core";
+import {
+  DestinationConfigSchema,
+  DestinationTypeSchema,
+  FieldSchemaSchema,
+  type DestinationConfig,
+  type DestinationType,
+  type FieldSchema,
+} from "@scout/core";
 import { CollectionForm } from "../collection-form";
 
 export default async function NewCollectionPage({
@@ -15,6 +22,7 @@ export default async function NewCollectionPage({
     instruction: "",
     fieldSchema: [] as FieldSchema,
     destinationType: "markdown" as DestinationType,
+    destinationConfig: {} as DestinationConfig,
   };
 
   if (from) {
@@ -26,6 +34,7 @@ export default async function NewCollectionPage({
         instruction: source.instruction,
         fieldSchema: FieldSchemaSchema.parse(source.fieldSchema),
         destinationType: DestinationTypeSchema.parse(source.destinationType),
+        destinationConfig: DestinationConfigSchema.parse(source.destinationConfig),
       };
     }
   }

@@ -1,7 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { generateSchema, FieldSchemaSchema, type DestinationType, type FieldSchema } from "@scout/core";
+import {
+  generateSchema,
+  DestinationConfigSchema,
+  FieldSchemaSchema,
+  type DestinationConfig,
+  type DestinationType,
+  type FieldSchema,
+} from "@scout/core";
 import { db } from "@/lib/db";
 
 export async function generateFieldSchema(instruction: string): Promise<FieldSchema> {
@@ -17,10 +24,12 @@ export interface CollectionInput {
   instruction: string;
   fieldSchema: FieldSchema;
   destinationType: DestinationType;
+  destinationConfig: DestinationConfig;
 }
 
 export async function createCollection(input: CollectionInput): Promise<{ id: string }> {
   const fieldSchema = FieldSchemaSchema.parse(input.fieldSchema);
+  const destinationConfig = DestinationConfigSchema.parse(input.destinationConfig);
 
   const collection = await db.collection.create({
     data: {
@@ -29,7 +38,7 @@ export async function createCollection(input: CollectionInput): Promise<{ id: st
       instruction: input.instruction,
       fieldSchema,
       destinationType: input.destinationType,
-      destinationConfig: {},
+      destinationConfig,
     },
   });
 
@@ -39,6 +48,7 @@ export async function createCollection(input: CollectionInput): Promise<{ id: st
 
 export async function updateCollection(id: string, input: CollectionInput): Promise<{ id: string }> {
   const fieldSchema = FieldSchemaSchema.parse(input.fieldSchema);
+  const destinationConfig = DestinationConfigSchema.parse(input.destinationConfig);
 
   await db.collection.update({
     where: { id },
@@ -48,6 +58,7 @@ export async function updateCollection(id: string, input: CollectionInput): Prom
       instruction: input.instruction,
       fieldSchema,
       destinationType: input.destinationType,
+      destinationConfig,
     },
   });
 

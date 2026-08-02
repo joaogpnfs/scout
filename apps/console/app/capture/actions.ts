@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import {
   classify,
   extract,
+  getDestination,
   prepareImage,
   transcribe,
   COLLECTION_CORRECTION_FIELD_KEY,
@@ -147,6 +148,11 @@ function stringifyFieldValue(value: unknown): string {
 export async function saveCapture(input: SaveCaptureInput): Promise<{ captureId: string }> {
   const extracted = ExtractedFieldsSchema.parse(input.editedFields);
 
+  const collection = await db.collection.findUnique({ where: { id: input.collectionId } });
+  if (!collection) {
+    throw new Error(`Unknown collectionId: ${input.collectionId}`);
+  }
+
   const capture = await db.capture.create({
     data: {
       collectionId: input.collectionId,
@@ -157,6 +163,20 @@ export async function saveCapture(input: SaveCaptureInput): Promise<{ captureId:
       status: "done",
     },
   });
+
+  const destination = getDestination(collection.destinationType);
+  if (destination) {
+    try {
+      const result = await destination.write(
+        { name: collection.name, fieldSchema: FieldSchemaSchema.parse(collection.fieldSchema) },
+        { extracted, confidence: capture.confidence, createdAt: capture.createdAt, imageUrl: capture.imageUrl },
+        collection.destinationConfig,
+      );
+      console.log(`[destination] wrote ${collection.destinationType} capture to ${result.location}`);
+    } catch (error) {
+      console.warn(`[destination] skipped ${collection.destinationType} write:`, error);
+    }
+  }
 
   const correctionRows = Object.entries(input.editedFields)
     .filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(input.originalFields[key]))

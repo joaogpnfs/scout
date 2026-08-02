@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { DestinationTypeSchema, FieldSchemaSchema } from "@scout/core";
+import { DestinationConfigSchema, DestinationTypeSchema, FieldSchemaSchema } from "@scout/core";
 import { CollectionForm } from "../collection-form";
 
 export default async function EditCollectionPage({
@@ -26,6 +26,7 @@ export default async function EditCollectionPage({
           instruction: collection.instruction,
           fieldSchema: FieldSchemaSchema.parse(collection.fieldSchema),
           destinationType: DestinationTypeSchema.parse(collection.destinationType),
+          destinationConfig: DestinationConfigSchema.parse(collection.destinationConfig),
         }}
       />
     </main>

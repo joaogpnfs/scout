@@ -24,6 +24,9 @@ export function CollectionForm({ mode, collectionId, initial }: CollectionFormPr
   const [instruction, setInstruction] = useState(initial.instruction);
   const [fieldSchema, setFieldSchema] = useState<FieldSchemaEntry[]>(initial.fieldSchema);
   const [destinationType, setDestinationType] = useState<DestinationType>(initial.destinationType);
+  const [folderPath, setFolderPath] = useState(
+    typeof initial.destinationConfig.folderPath === "string" ? initial.destinationConfig.folderPath : "",
+  );
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +48,15 @@ export function CollectionForm({ mode, collectionId, initial }: CollectionFormPr
     setSaving(true);
     setError(null);
     try {
-      const input: CollectionInput = { name, icon, instruction, fieldSchema, destinationType };
+      const needsFolderPath = destinationType === "markdown" || destinationType === "json";
+      const input: CollectionInput = {
+        name,
+        icon,
+        instruction,
+        fieldSchema,
+        destinationType,
+        destinationConfig: needsFolderPath ? { folderPath } : {},
+      };
       const { id } =
         mode === "edit" && collectionId ? await updateCollection(collectionId, input) : await createCollection(input);
       router.push(`/collections/${id}`);
@@ -109,6 +120,19 @@ export function CollectionForm({ mode, collectionId, initial }: CollectionFormPr
             </option>
           ))}
         </select>
+        {destinationType === "markdown" || destinationType === "json" ? (
+          <input
+            className={fieldClasses}
+            placeholder="Folder path, e.g. C:\Users\you\Documents\Scout"
+            value={folderPath}
+            onChange={(event) => setFolderPath(event.target.value)}
+          />
+        ) : (
+          <p className="text-xs text-zinc-600">
+            {destinationType} isn&apos;t wired up yet — Collections can point at it, but captures won&apos;t be written
+            anywhere until a later phase.
+          </p>
+        )}
       </div>
 
       {error ? <p className="text-xs text-amber-400/80">{error}</p> : null}

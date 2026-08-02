@@ -91,7 +91,7 @@ export async function extract(
 
   const response = await client.messages.create({
     model: EXTRACT_MODEL,
-    max_tokens: 1024,
+    max_tokens: 4096,
     tools: [
       {
         name: EXTRACT_TOOL_NAME,
